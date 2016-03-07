@@ -13,7 +13,10 @@ im = cv2.imread(sys.argv[1], 0) # the zero loads in grayscale
 # find contours
 ret, thresh = cv2.threshold(im,127,255,0)
 contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-cv2.drawContours(im, contours, -1, (0,255,0), 3)
+
+shape = im.shape
+im = np.zeros(shape, np.uint8)  # create a black base 'image'
+cv2.drawContours(im, contours, -1, (128,255,0), 3)
 
 # resize to fit screen
 ratio = 1000.0 / im.shape[1]
