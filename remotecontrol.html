@@ -1,0 +1,57 @@
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport"/>
+    <title>Remote Control Robot</title>
+  </head>
+  <body>
+    <div id="commands"><p>Hello</p></div>
+  </body>
+  <script type="text/javascript">
+    var doc = document.getElementById("commands");
+    var keysDown = {
+      left: 'up',
+      right: 'up',
+      up: 'up',
+      down: 'up'
+    };
+    var writeCommand = function(key, stat) {
+      keysDown[key] = stat;
+      doc.innerHTML = "<p>" + JSON.stringify(keysDown) + "</p>";
+    };
+    document.onkeyup = function(e) {
+      var stat = 'up';
+      switch (e.keyCode) {
+        case 37:
+            writeCommand('left', stat);
+            break;
+        case 38:
+            writeCommand('up', stat);
+            break;
+        case 39:
+            writeCommand('right', stat);
+            break;
+        case 40:
+            writeCommand('down', stat);
+            break;
+      }
+    }; 
+    document.onkeydown = function(e) {
+      var stat = 'down';
+      switch (e.keyCode) {
+        case 37:
+            writeCommand('left', stat);
+            break;
+        case 38:
+            writeCommand('up', stat);
+            break;
+        case 39:
+            writeCommand('right', stat);
+            break;
+        case 40:
+            writeCommand('down', stat);
+            break;
+      }
+    }; 
+  </script>
+</html>
