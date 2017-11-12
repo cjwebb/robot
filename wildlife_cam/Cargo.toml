@@ -1,0 +1,8 @@
+[package]
+name = "wildlife_cam"
+version = "0.1.0"
+authors = ["cjwebb <colinjameswebb@hotmail.com>"]
+
+[dependencies]
+
+[target.arm-unknown-linux-gnueabihf]
