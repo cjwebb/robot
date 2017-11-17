@@ -1,2 +1,5 @@
 temp.jpg
 target/
+.idea/
+*.iml
+.DS_Store
