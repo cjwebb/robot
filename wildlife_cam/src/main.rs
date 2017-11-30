@@ -5,24 +5,27 @@ extern crate bytes;
 
 use futures::sync::mpsc;
 use futures::{Sink, Future, Stream};
-use std::process::Command;
 use std::net::SocketAddr;
 use tokio_core::reactor::Core;
 use std::io::{self, Read, Write};
 use std::thread;
+use std::process::Command;
+use std::process::Stdio;
+
+mod tcp;
 
 fn main() {
     let mut core = Core::new().unwrap();
     let handle = core.handle();
+    // todo - take socket address as argument
     let address: SocketAddr = "0.0.0.0:5001".parse().unwrap();
+//    let address: SocketAddr = "192.168.1.95:5001".parse().unwrap();
 
-    // spawn thread to handle something?
     let (stdin_tx, stdin_rx) = mpsc::channel(0);
-    thread::spawn(|| read_stdin(stdin_tx));
+    thread::spawn(|| run_child_process(stdin_tx));
+
     let stdin_rx = stdin_rx.map_err(|_| panic!());
-
     let stdout = tcp::connect(&address, &handle, Box::new(stdin_rx));
-
     let mut out = io::stdout();
     let server = stdout.for_each(|chunk| {
         out.write_all(&chunk)
@@ -32,14 +35,19 @@ fn main() {
         Ok(_) => println!("exited"),
         Err(e) => panic!("failed to run process: {}", e)
     }
-
 }
 
-fn read_stdin(mut tx: mpsc::Sender<Vec<u8>>) {
-    let mut stdin = io::stdin();
+fn run_child_process(mut tx: mpsc::Sender<Vec<u8>>) {
+    let mut command = get_command();
+    let mut child = command
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("failed to spawn");
+    let mut child_stdout = child.stdout.take().unwrap();
+
     loop {
         let mut buf = vec![0; 1024];
-        let n = match stdin.read(&mut buf) {
+        let n = match child_stdout.read(&mut buf) {
             Err(_) |
             Ok(0) => break,
             Ok(n) => n,
@@ -58,66 +66,4 @@ fn get_command() -> Command {
     let mut command = Command::new("bash");
     command.arg("scripts/looping.sh");
     command
-}
-
-mod tcp {
-    use std::io;
-    use std::net::SocketAddr;
-
-    use bytes::{BufMut, BytesMut};
-    use futures::{Future, Stream};
-    use tokio_core::net::TcpStream;
-    use tokio_core::reactor::Handle;
-    use tokio_io::AsyncRead;
-    use tokio_io::codec::{Encoder, Decoder};
-
-    pub fn connect(address: &SocketAddr,
-                   handle: &Handle,
-                   stream_in: Box<Stream<Item = Vec<u8>, Error = io::Error>>)
-        -> Box<Stream<Item = BytesMut, Error = io::Error>> {
-        let tcp = TcpStream::connect(address, handle);
-        let handle = handle.clone();
-
-        Box::new(tcp.map(move |stream| {
-            let (sink, stream) = stream.framed(Bytes).split();
-            handle.spawn(stream_in.forward(sink).then(|result| {
-                if let Err(e) = result {
-                    panic!("failed to write to socket: {}", e)
-                }
-                Ok(())
-            }));
-            stream
-        }).flatten_stream())
-    }
-
-    // Simple codec for sending bytes over TCP
-    struct Bytes;
-
-    impl Decoder for Bytes {
-        type Item = BytesMut;
-        type Error = io::Error;
-
-        fn decode(&mut self, buf: &mut BytesMut) -> io::Result<Option<BytesMut>> {
-            if buf.len() > 0 {
-                let len = buf.len();
-                Ok(Some(buf.split_to(len)))
-            } else {
-                Ok(None)
-            }
-        }
-
-        fn decode_eof(&mut self, buf: &mut BytesMut) -> io::Result<Option<BytesMut>> {
-            self.decode(buf)
-        }
-    }
-
-    impl Encoder for Bytes {
-        type Item = Vec<u8>;
-        type Error = io::Error;
-
-        fn encode(&mut self, data: Vec<u8>, buf: &mut BytesMut) -> io::Result<()> {
-            buf.put(&data[..]);
-            Ok(())
-        }
-    }
 }
