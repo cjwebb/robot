@@ -1,0 +1,6 @@
+[command]
+program = "bash"
+arguments = "scripts/looping.sh"
+
+[server]
+address = "0.0.0.0:5001"

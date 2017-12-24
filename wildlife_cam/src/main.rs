@@ -2,6 +2,11 @@ extern crate futures;
 extern crate tokio_io;
 extern crate tokio_core;
 extern crate bytes;
+extern crate config;
+extern crate serde;
+
+#[macro_use]
+extern crate serde_derive;
 
 use futures::sync::mpsc;
 use futures::{Sink, Future, Stream};
@@ -11,18 +16,26 @@ use std::io::{self, Read, Write};
 use std::thread;
 use std::process::Command;
 use std::process::Stdio;
+use configuration::Configuration;
 
 mod tcp;
+mod configuration;
+
+/// TODO
+/// - Save in a buffer, and run allow incoming connections to read
+/// - Chunk into h264 frames
+/// - Work in frames, rather than byte-stream?
 
 fn main() {
+    let configuration = Configuration::new().unwrap();
+    println!("Starting with {:?}", configuration);
+
     let mut core = Core::new().unwrap();
     let handle = core.handle();
-    // todo - take socket address as argument
-    let address: SocketAddr = "0.0.0.0:5001".parse().unwrap();
-//    let address: SocketAddr = "192.168.1.95:5001".parse().unwrap();
+    let address: SocketAddr = configuration.server.address.parse().unwrap();
 
     let (stdin_tx, stdin_rx) = mpsc::channel(0);
-    thread::spawn(|| run_child_process(stdin_tx));
+    thread::spawn(move || run_child_process(&configuration, stdin_tx));
 
     let stdin_rx = stdin_rx.map_err(|_| panic!());
     let stdout = tcp::connect(&address, &handle, Box::new(stdin_rx));
@@ -37,8 +50,8 @@ fn main() {
     }
 }
 
-fn run_child_process(mut tx: mpsc::Sender<Vec<u8>>) {
-    let mut command = get_command();
+fn run_child_process(configuration: &Configuration, mut tx: mpsc::Sender<Vec<u8>>) {
+    let mut command = get_command(configuration);
     let mut child = command
         .stdout(Stdio::piped())
         .spawn()
@@ -53,6 +66,9 @@ fn run_child_process(mut tx: mpsc::Sender<Vec<u8>>) {
             Ok(n) => n,
         };
         buf.truncate(n);
+
+        // todo - split into frames here
+
         tx = match tx.send(buf).wait() {
             Ok(tx) => tx,
             Err(_) => break,
@@ -60,10 +76,12 @@ fn run_child_process(mut tx: mpsc::Sender<Vec<u8>>) {
     }
 }
 
-fn get_command() -> Command {
-//    let mut command = Command::new("raspivid");
-//    command.arg("-t").arg("0").arg("-o").arg("-");
-    let mut command = Command::new("bash");
-    command.arg("scripts/looping.sh");
+fn get_command(configuration: &Configuration) -> Command {
+    let mut command = Command::new(&configuration.command.program);
+
+    for x in configuration.command.arguments.split_whitespace() {
+        command.arg(x);
+    }
+
     command
 }
