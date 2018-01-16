@@ -22,6 +22,7 @@ mod tcp;
 mod configuration;
 
 /// TODO
+/// - Make this into a server, rather than a client.
 /// - Save in a buffer, and run allow incoming connections to read
 /// - Chunk into h264 frames
 /// - Work in frames, rather than byte-stream?
