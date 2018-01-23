@@ -13,45 +13,35 @@
       left: 'up',
       right: 'up',
       up: 'up',
-      down: 'up'
+      down: 'up',
+      space: 'up'
     };
     var writeCommand = function(key, stat) {
       keysDown[key] = stat;
       doc.innerHTML = "<p>" + JSON.stringify(keysDown) + "</p>";
     };
-    document.onkeyup = function(e) {
-      var stat = 'up';
-      switch (e.keyCode) {
-        case 37:
-            writeCommand('left', stat);
+    var handleKey = function(keyStatus) {
+      return function(event) {
+        switch (event.keyCode) {
+          case 32:
+            writeCommand('space', keyStatus);
             break;
-        case 38:
-            writeCommand('up', stat);
+          case 37:
+            writeCommand('left', keyStatus);
             break;
-        case 39:
-            writeCommand('right', stat);
+          case 38:
+            writeCommand('up', keyStatus);
             break;
-        case 40:
-            writeCommand('down', stat);
+          case 39:
+            writeCommand('right', keyStatus);
             break;
+          case 40:
+            writeCommand('down', keyStatus);
+            break;
+        }
       }
-    }; 
-    document.onkeydown = function(e) {
-      var stat = 'down';
-      switch (e.keyCode) {
-        case 37:
-            writeCommand('left', stat);
-            break;
-        case 38:
-            writeCommand('up', stat);
-            break;
-        case 39:
-            writeCommand('right', stat);
-            break;
-        case 40:
-            writeCommand('down', stat);
-            break;
-      }
-    }; 
+    };
+    document.onkeyup = handleKey('up');
+    document.onkeydown = handleKey('down');
   </script>
 </html>
