@@ -5,10 +5,21 @@
     <title>Remote Control Robot</title>
   </head>
   <body>
-    <div id="commands"><p>Hello</p></div>
+    <video width="640" height="480" autoplay>
+      <source src="/video.mp4" type="video/mp4">
+    </video>
+    <div id="help"><p>Use arrow keys, and spacebar to stop</p></div>
+    <div id="commands"></div>
   </body>
   <script type="text/javascript">
     var doc = document.getElementById("commands");
+    var keys = {
+      32: 'space',
+      37: 'left',
+      38: 'up',
+      39: 'right',
+      40: 'down'
+    }
     var keysDown = {
       left: 'up',
       right: 'up',
@@ -16,32 +27,22 @@
       down: 'up',
       space: 'up'
     };
-    var writeCommand = function(key, stat) {
-      keysDown[key] = stat;
+    var writeKeyStatus = function() {
       doc.innerHTML = "<p>" + JSON.stringify(keysDown) + "</p>";
     };
     var handleKey = function(keyStatus) {
       return function(event) {
-        switch (event.keyCode) {
-          case 32:
-            writeCommand('space', keyStatus);
-            break;
-          case 37:
-            writeCommand('left', keyStatus);
-            break;
-          case 38:
-            writeCommand('up', keyStatus);
-            break;
-          case 39:
-            writeCommand('right', keyStatus);
-            break;
-          case 40:
-            writeCommand('down', keyStatus);
-            break;
+        var key = keys[event.keyCode];
+        if (key !== undefined) {
+          keysDown[key] = keyStatus;
+          writeKeyStatus();
         }
       }
     };
+
+    // Bind functions, and initialize.
     document.onkeyup = handleKey('up');
     document.onkeydown = handleKey('down');
+    writeKeyStatus();
   </script>
 </html>
